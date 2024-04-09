@@ -1,0 +1,17 @@
+<div id="app">
+    <h1 class="title">Excel To Json</h1>
+    <div class="container">
+        <ui-prop>
+            <ui-label slot="label">Excel file</ui-label>
+            <ui-file slot="content" type="file" id="excelAsset" extensions="xls,xlsx"></ui-file>
+        </ui-prop>
+        <ui-prop>
+            <ui-label slot="label">Output dir</ui-label>
+            <ui-file slot="content" type="directory" id="out"></ui-file>
+        </ui-prop>
+        <div class="footer">
+            <ui-button id="submit">Convert</ui-button>
+        </div>
+        <ui-progress id="progress" value="100" percent></ui-progress>
+    </div>
+</div>

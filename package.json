@@ -1,0 +1,56 @@
+{
+    "package_version": 2,
+    "version": "1.0.0",
+    "name": "excel-extension",
+    "description": "i18n:excel-extension.description",
+    "main": "./dist/main.js",
+    "dependencies": {
+        "fs-extra": "^10.0.0",
+        "xlsx": "^0.18.5"
+    },
+    "devDependencies": {
+        "@types/fs-extra": "^9.0.5",
+        "@types/node": "^16.0.1",
+        "typescript": "^4.3.4"
+    },
+    "panels": {
+        "default": {
+            "title": "Excel To Json",
+            "type": "dockable",
+            "main": "dist/panels/default",
+            "size": {
+                "min-width": 400,
+                "min-height": 200,
+                "width": 400,
+                "height": 200
+            }
+        }
+    },
+    "contributions": {
+        "menu": [
+            {
+                "path": "Excel Extension",
+                "label": "Excel To Json",
+                "message": "open-panel"
+            }
+        ],
+        "messages": {
+            "open-panel": {
+                "methods": [
+                    "openPanel"
+                ]
+            },
+            "convertToJson": {
+                "methods": [
+                    "default.convertToJson"
+                ]
+            }
+        }
+    },
+    "author": "Tiendat",
+    "editor": ">=3.7.2",
+    "scripts": {
+        "build": "tsc -b",
+        "watch": "tsc -w"
+    }
+}
