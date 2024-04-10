@@ -22,6 +22,8 @@ module.exports = Editor.Panel.define({
     ),
     $: {
         excelFile: "#excelAsset",
+        fileName: "#fileName",
+        sheetName: "#sheetName",
         out: "#out",
         progress: "#progress",
         submit: "#submit",
@@ -29,22 +31,43 @@ module.exports = Editor.Panel.define({
     methods: {
         convertToJson(url: string) {
             const outputFile = this.$.out as HTMLInputElement;
+            const fileName = this.$.fileName as HTMLInputElement;
+            const sheetName = this.$.sheetName as HTMLInputElement;
             const workBook = readFile(url, { type: "binary" });
-            const result: { [key: string]: any } = {};
-            workBook.SheetNames.forEach((sheetName) => {
-                const row = utils.sheet_to_json(workBook.Sheets[sheetName], {
-                    raw: true,
-                    rawNumbers: true,
+            let result: any = {};
+            if (sheetName.value) {
+                const row = utils.sheet_to_json(
+                    workBook.Sheets[sheetName.value],
+                    {
+                        raw: true,
+                        rawNumbers: true,
+                    }
+                );
+                if (row.length > 0) result = row;
+            } else {
+                workBook.SheetNames.forEach((name) => {
+                    const row = utils.sheet_to_json(workBook.Sheets[name], {
+                        raw: true,
+                        rawNumbers: true,
+                    });
+                    if (row.length > 0) result[name] = row;
                 });
-                if (row.length > 0) result[sheetName] = row;
+            }
+
+            writeFile(
+                outputFile.value + `/${fileName.value}.json`,
+                JSON.stringify(result)
+            ).then(() => {
+                this.$.submit?.removeAttribute("disabled");
+                this.$.submit?.removeAttribute("loading");
             });
-            console.log(result);
-            writeFile(outputFile.value + "/data.json", JSON.stringify(result));
         },
     },
     ready() {
         this.$.submit?.addEventListener("confirm", (event) => {
             const inputFile = this.$.excelFile as HTMLInputElement;
+            this.$.submit?.setAttribute("disabled", "true");
+            this.$.submit?.setAttribute("loading", "true");
             Editor.Message.send(
                 "excel-extension",
                 "convertToJson",
