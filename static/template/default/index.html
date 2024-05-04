@@ -17,9 +17,15 @@
             <ui-label slot="label">Output Name</ui-label>
             <ui-input slot="content" id="fileName" value="newData"></ui-input>
         </ui-prop>
+        <ui-prop>
+            <ui-label slot="label">Options</ui-label>
+            <div slot="content">
+                <ui-checkbox id="blankRow" value="true" style="margin-right: 16px;">Blank row</ui-checkbox>
+                <ui-checkbox id="blankCell" value="true">Blank Cell</ui-checkbox>
+            </div>
+        </ui-prop>
         <div class="footer">
             <ui-button id="submit">Convert</ui-button>
         </div>
-        <!-- <ui-progress id="progress" value="100" percent></ui-progress> -->
     </div>
 </div>

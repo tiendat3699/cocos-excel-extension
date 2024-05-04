@@ -18,22 +18,53 @@ module.exports = Editor.Panel.define({
     $: {
         excelFile: "#excelAsset",
         fileName: "#fileName",
-        sheetName: "#sheetName",
         out: "#out",
-        progress: "#progress",
+        sheetName: "#sheetName",
         submit: "#submit",
+        blankRow: "#blankRow",
+        blankCell: "#blankCell",
     },
     methods: {
+        loadFormData() {
+            const json = localStorage.getItem("excelToJsonData");
+            if (json) {
+                const data = JSON.parse(json);
+                const inputFile = this.$.excelFile;
+                const fileName = this.$.fileName;
+                const outputFile = this.$.out;
+                const sheetName = this.$.sheetName;
+                const blankRow = this.$.blankRow;
+                const blankCell = this.$.blankCell;
+                inputFile.value = data.inputFile;
+                fileName.value = data.fileName;
+                outputFile.value = data.outputFile;
+                sheetName.value = data.sheetName;
+                blankRow.value = data.blankRow;
+                blankCell.value = data.blankCell;
+            }
+        },
         convertToJson(url) {
-            const outputFile = this.$.out;
             const fileName = this.$.fileName;
+            const outputFile = this.$.out;
             const sheetName = this.$.sheetName;
+            const blankRow = this.$.blankRow;
+            const blankCell = this.$.blankCell;
+            const data = {
+                inputFile: url,
+                fileName: fileName.value,
+                outputFile: outputFile.value,
+                sheetName: sheetName.value,
+                blankRow: blankRow.value,
+                blankCell: blankCell.value,
+            };
             const workBook = (0, xlsx_1.readFile)(url, { type: "binary" });
             let result = {};
-            if (sheetName.value) {
-                const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[sheetName.value], {
+            if (data.sheetName) {
+                const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[data.sheetName], {
                     raw: true,
                     rawNumbers: true,
+                    defval: !!data.blankCell ? null : undefined,
+                    blankrows: !!data.blankRow,
                 });
                 if (row.length > 0)
                     result = row;
@@ -43,20 +74,24 @@ module.exports = Editor.Panel.define({
                     const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[name], {
                         raw: true,
                         rawNumbers: true,
+                        defval: !!data.blankCell ? null : undefined,
+                        blankrows: !!data.blankRow,
                     });
                     if (row.length > 0)
                         result[name] = row;
                 });
             }
-            (0, fs_extra_1.writeFile)(outputFile.value + `/${fileName.value}.json`, JSON.stringify(result)).then(() => {
+            (0, fs_extra_1.writeFile)(data.outputFile + `/${data.fileName}.json`, JSON.stringify(result)).then(() => {
                 var _a, _b;
                 (_a = this.$.submit) === null || _a === void 0 ? void 0 : _a.removeAttribute("disabled");
                 (_b = this.$.submit) === null || _b === void 0 ? void 0 : _b.removeAttribute("loading");
+                localStorage.setItem("excelToJsonData", JSON.stringify(data));
             });
         },
     },
     ready() {
         var _a;
+        this.loadFormData();
         (_a = this.$.submit) === null || _a === void 0 ? void 0 : _a.addEventListener("confirm", (event) => {
             var _a, _b;
             const inputFile = this.$.excelFile;
