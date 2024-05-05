@@ -1,5 +1,9 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const package_json_1 = __importDefault(require("../../../package.json"));
 const fs_extra_1 = require("fs-extra");
 const path_1 = require("path");
 const xlsx_1 = require("xlsx");
@@ -25,10 +29,9 @@ module.exports = Editor.Panel.define({
         blankCell: "#blankCell",
     },
     methods: {
-        loadFormData() {
-            const json = localStorage.getItem("excelToJsonData");
-            if (json) {
-                const data = JSON.parse(json);
+        async loadFormData() {
+            const data = await Editor.Profile.getConfig(package_json_1.default.name, "excelToJsonData");
+            if (data) {
                 const inputFile = this.$.excelFile;
                 const fileName = this.$.fileName;
                 const outputFile = this.$.out;
@@ -85,7 +88,7 @@ module.exports = Editor.Panel.define({
                 var _a, _b;
                 (_a = this.$.submit) === null || _a === void 0 ? void 0 : _a.removeAttribute("disabled");
                 (_b = this.$.submit) === null || _b === void 0 ? void 0 : _b.removeAttribute("loading");
-                localStorage.setItem("excelToJsonData", JSON.stringify(data));
+                Editor.Profile.setConfig(package_json_1.default.name, "excelToJsonData", data);
             });
         },
     },

@@ -1,3 +1,4 @@
+import packageJSON from "../../../package.json";
 import { readFileSync, writeFile } from "fs-extra";
 import { join } from "path";
 import { readFile, utils } from "xlsx";
@@ -30,11 +31,12 @@ module.exports = Editor.Panel.define({
         blankCell: "#blankCell",
     },
     methods: {
-        loadFormData() {
-            const json = localStorage.getItem("excelToJsonData");
-
-            if (json) {
-                const data = JSON.parse(json);
+        async loadFormData() {
+            const data = await Editor.Profile.getConfig(
+                packageJSON.name,
+                "excelToJsonData"
+            );
+            if (data) {
                 const inputFile = this.$.excelFile as HTMLInputElement;
                 const fileName = this.$.fileName as HTMLInputElement;
                 const outputFile = this.$.out as HTMLInputElement;
@@ -97,7 +99,11 @@ module.exports = Editor.Panel.define({
             ).then(() => {
                 this.$.submit?.removeAttribute("disabled");
                 this.$.submit?.removeAttribute("loading");
-                localStorage.setItem("excelToJsonData", JSON.stringify(data));
+                Editor.Profile.setConfig(
+                    packageJSON.name,
+                    "excelToJsonData",
+                    data
+                );
             });
         },
     },
