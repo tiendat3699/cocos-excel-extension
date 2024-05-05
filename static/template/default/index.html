@@ -7,15 +7,15 @@
         </ui-prop>
         <ui-prop>
             <ui-label slot="label">Output Path</ui-label>
-            <ui-file slot="content" type="directory" id="out"></ui-file>
-        </ui-prop>
-        <ui-prop>
-            <ui-label slot="label">Sheet Name</ui-label>
-            <ui-input slot="content" id="sheetName" value=""></ui-input>
+            <ui-file slot="content" type="directory" protocols="project" id="out" value="project://assets/"></ui-file>
         </ui-prop>
         <ui-prop>
             <ui-label slot="label">Output Name</ui-label>
             <ui-input slot="content" id="fileName" value="newData"></ui-input>
+        </ui-prop>
+        <ui-prop>
+            <ui-label slot="label">Sheet Name</ui-label>
+            <ui-input slot="content" placeholder="optional" id="sheetName" value=""></ui-input>
         </ui-prop>
         <ui-prop>
             <ui-label slot="label">Options</ui-label>

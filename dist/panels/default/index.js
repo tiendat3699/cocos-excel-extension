@@ -45,8 +45,15 @@ module.exports = Editor.Panel.define({
                 blankRow.value = data.blankRow;
                 blankCell.value = data.blankCell;
             }
+            else {
+                setTimeout(() => {
+                    //@ts-ignore
+                    this.$.out.value = "project://assets";
+                }, 100);
+            }
         },
-        convertToJson(url) {
+        async convertToJson(url) {
+            var _a, _b, _c, _d, _e, _f;
             const fileName = this.$.fileName;
             const outputFile = this.$.out;
             const sheetName = this.$.sheetName;
@@ -60,36 +67,51 @@ module.exports = Editor.Panel.define({
                 blankRow: blankRow.value,
                 blankCell: blankCell.value,
             };
-            const workBook = (0, xlsx_1.readFile)(url, { type: "binary" });
-            let result = {};
-            if (data.sheetName) {
-                const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[data.sheetName], {
-                    raw: true,
-                    rawNumbers: true,
-                    defval: !!data.blankCell ? null : undefined,
-                    blankrows: !!data.blankRow,
-                });
-                if (row.length > 0)
-                    result = row;
+            if (!outputFile.getAttribute("invalid")) {
+                try {
+                    const workBook = (0, xlsx_1.readFile)(url, { type: "binary" });
+                    let result = {};
+                    if (data.sheetName) {
+                        const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[data.sheetName], {
+                            raw: true,
+                            rawNumbers: true,
+                            defval: !!data.blankCell ? null : undefined,
+                            blankrows: !!data.blankRow,
+                        });
+                        if (row.length > 0)
+                            result = row;
+                    }
+                    else {
+                        workBook.SheetNames.forEach((name) => {
+                            const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[name], {
+                                raw: true,
+                                rawNumbers: true,
+                                defval: !!data.blankCell ? null : undefined,
+                                blankrows: !!data.blankRow,
+                            });
+                            if (row.length > 0)
+                                result[name] = row;
+                        });
+                    }
+                    const output = data.outputFile.replace("project://", "db://");
+                    await Editor.Message.request("asset-db", "create-asset", output + `/${data.fileName}.json`, JSON.stringify(result));
+                    (_a = this.$.submit) === null || _a === void 0 ? void 0 : _a.removeAttribute("disabled");
+                    (_b = this.$.submit) === null || _b === void 0 ? void 0 : _b.removeAttribute("loading");
+                    Editor.Profile.setConfig(package_json_1.default.name, "excelToJsonData", data);
+                }
+                catch (e) {
+                    await Editor.Dialog.error("Error", { detail: e.message });
+                    (_c = this.$.submit) === null || _c === void 0 ? void 0 : _c.removeAttribute("disabled");
+                    (_d = this.$.submit) === null || _d === void 0 ? void 0 : _d.removeAttribute("loading");
+                }
             }
             else {
-                workBook.SheetNames.forEach((name) => {
-                    const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[name], {
-                        raw: true,
-                        rawNumbers: true,
-                        defval: !!data.blankCell ? null : undefined,
-                        blankrows: !!data.blankRow,
-                    });
-                    if (row.length > 0)
-                        result[name] = row;
+                await Editor.Dialog.warn("Warning", {
+                    detail: "Output path invalid",
                 });
+                (_e = this.$.submit) === null || _e === void 0 ? void 0 : _e.removeAttribute("disabled");
+                (_f = this.$.submit) === null || _f === void 0 ? void 0 : _f.removeAttribute("loading");
             }
-            (0, fs_extra_1.writeFile)(data.outputFile + `/${data.fileName}.json`, JSON.stringify(result)).then(() => {
-                var _a, _b;
-                (_a = this.$.submit) === null || _a === void 0 ? void 0 : _a.removeAttribute("disabled");
-                (_b = this.$.submit) === null || _b === void 0 ? void 0 : _b.removeAttribute("loading");
-                Editor.Profile.setConfig(package_json_1.default.name, "excelToJsonData", data);
-            });
         },
     },
     ready() {

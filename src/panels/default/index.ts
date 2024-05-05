@@ -1,5 +1,5 @@
 import packageJSON from "../../../package.json";
-import { readFileSync, writeFile } from "fs-extra";
+import { readFileSync } from "fs-extra";
 import { join } from "path";
 import { readFile, utils } from "xlsx";
 
@@ -50,10 +50,15 @@ module.exports = Editor.Panel.define({
                 sheetName.value = data.sheetName;
                 blankRow.value = data.blankRow;
                 blankCell.value = data.blankCell;
+            } else {
+                setTimeout(() => {
+                    //@ts-ignore
+                    this.$.out.value = "project://assets";
+                }, 100);
             }
         },
 
-        convertToJson(url: string) {
+        async convertToJson(url: string) {
             const fileName = this.$.fileName as HTMLInputElement;
             const outputFile = this.$.out as HTMLInputElement;
             const sheetName = this.$.sheetName as HTMLInputElement;
@@ -68,43 +73,65 @@ module.exports = Editor.Panel.define({
                 blankCell: blankCell.value,
             };
 
-            const workBook = readFile(url, { type: "binary" });
-            let result: any = {};
-            if (data.sheetName) {
-                const row = utils.sheet_to_json(
-                    workBook.Sheets[data.sheetName],
-                    {
-                        raw: true,
-                        rawNumbers: true,
-                        defval: !!data.blankCell ? null : undefined,
-                        blankrows: !!data.blankRow,
+            if (!outputFile.getAttribute("invalid")) {
+                try {
+                    const workBook = readFile(url, { type: "binary" });
+                    let result: any = {};
+                    if (data.sheetName) {
+                        const row = utils.sheet_to_json(
+                            workBook.Sheets[data.sheetName],
+                            {
+                                raw: true,
+                                rawNumbers: true,
+                                defval: !!data.blankCell ? null : undefined,
+                                blankrows: !!data.blankRow,
+                            }
+                        );
+                        if (row.length > 0) result = row;
+                    } else {
+                        workBook.SheetNames.forEach((name) => {
+                            const row = utils.sheet_to_json(
+                                workBook.Sheets[name],
+                                {
+                                    raw: true,
+                                    rawNumbers: true,
+                                    defval: !!data.blankCell ? null : undefined,
+                                    blankrows: !!data.blankRow,
+                                }
+                            );
+                            if (row.length > 0) result[name] = row;
+                        });
                     }
-                );
-                if (row.length > 0) result = row;
-            } else {
-                workBook.SheetNames.forEach((name) => {
-                    const row = utils.sheet_to_json(workBook.Sheets[name], {
-                        raw: true,
-                        rawNumbers: true,
-                        defval: !!data.blankCell ? null : undefined,
-                        blankrows: !!data.blankRow,
-                    });
-                    if (row.length > 0) result[name] = row;
-                });
-            }
 
-            writeFile(
-                data.outputFile + `/${data.fileName}.json`,
-                JSON.stringify(result)
-            ).then(() => {
+                    const output = data.outputFile.replace(
+                        "project://",
+                        "db://"
+                    );
+                    await Editor.Message.request(
+                        "asset-db",
+                        "create-asset",
+                        output + `/${data.fileName}.json`,
+                        JSON.stringify(result)
+                    );
+                    this.$.submit?.removeAttribute("disabled");
+                    this.$.submit?.removeAttribute("loading");
+                    Editor.Profile.setConfig(
+                        packageJSON.name,
+                        "excelToJsonData",
+                        data
+                    );
+                } catch (e: any) {
+                    await Editor.Dialog.error("Error", { detail: e.message });
+                    this.$.submit?.removeAttribute("disabled");
+                    this.$.submit?.removeAttribute("loading");
+                }
+            } else {
+                await Editor.Dialog.warn("Warning", {
+                    detail: "Output path invalid",
+                });
                 this.$.submit?.removeAttribute("disabled");
                 this.$.submit?.removeAttribute("loading");
-                Editor.Profile.setConfig(
-                    packageJSON.name,
-                    "excelToJsonData",
-                    data
-                );
-            });
+            }
         },
     },
     ready() {
