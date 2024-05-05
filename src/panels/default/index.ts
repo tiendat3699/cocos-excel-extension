@@ -66,7 +66,7 @@ module.exports = Editor.Panel.define({
             const blankCell = this.$.blankCell as HTMLInputElement;
             const data = {
                 inputFile: url,
-                fileName: fileName.value,
+                fileName: fileName.value || "newData",
                 outputFile: outputFile.value,
                 sheetName: sheetName.value,
                 blankRow: blankRow.value,
