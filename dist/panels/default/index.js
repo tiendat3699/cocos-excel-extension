@@ -25,8 +25,11 @@ module.exports = Editor.Panel.define({
         out: "#out",
         sheetName: "#sheetName",
         submit: "#submit",
+        range: "#range",
+        exclude: "#exclude",
         blankRow: "#blankRow",
         blankCell: "#blankCell",
+        useHeader: "#useHeader",
     },
     methods: {
         async loadFormData() {
@@ -36,14 +39,20 @@ module.exports = Editor.Panel.define({
                 const fileName = this.$.fileName;
                 const outputFile = this.$.out;
                 const sheetName = this.$.sheetName;
+                const exclude = this.$.exclude;
+                const range = this.$.range;
                 const blankRow = this.$.blankRow;
                 const blankCell = this.$.blankCell;
+                const useHeader = this.$.useHeader;
                 inputFile.value = data.inputFile;
                 fileName.value = data.fileName;
                 outputFile.value = data.outputFile;
                 sheetName.value = data.sheetName;
+                exclude.value = data.exclude;
+                range.value = data.range;
                 blankRow.value = data.blankRow;
                 blankCell.value = data.blankCell;
+                useHeader.value = data.useHeader;
             }
             else {
                 setTimeout(() => {
@@ -53,12 +62,15 @@ module.exports = Editor.Panel.define({
             }
         },
         async convertToJson(url) {
-            var _a, _b, _c, _d, _e, _f, _g, _h;
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
             const fileName = this.$.fileName;
             const outputFile = this.$.out;
             const sheetName = this.$.sheetName;
+            const exclude = this.$.exclude;
+            const range = this.$.range;
             const blankRow = this.$.blankRow;
             const blankCell = this.$.blankCell;
+            const useHeader = this.$.useHeader;
             const data = {
                 inputFile: url,
                 fileName: fileName.value,
@@ -66,6 +78,20 @@ module.exports = Editor.Panel.define({
                 sheetName: sheetName.value,
                 blankRow: blankRow.value,
                 blankCell: blankCell.value,
+                exclude: exclude.value,
+                range: range.value,
+                useHeader: useHeader.value,
+            };
+            const excludeSheet = data.exclude.split(/\s*,\s*/);
+            const getRow = (sheet) => {
+                return xlsx_1.utils.sheet_to_json(sheet, {
+                    raw: true,
+                    rawNumbers: true,
+                    defval: !!data.blankCell ? null : undefined,
+                    blankrows: !!data.blankRow,
+                    range: !!data.range ? data.range : undefined,
+                    header: !!data.useHeader ? undefined : 1,
+                });
             };
             if (outputFile.getAttribute("invalid")) {
                 await Editor.Dialog.warn("Warning", {
@@ -85,41 +111,45 @@ module.exports = Editor.Panel.define({
                 (_d = this.$.submit) === null || _d === void 0 ? void 0 : _d.removeAttribute("loading");
                 return;
             }
+            if (excludeSheet.length > 1 &&
+                excludeSheet.includes(data.sheetName)) {
+                await Editor.Dialog.warn("Warning", {
+                    detail: `Sheet ${sheetName} in exclude sheet`,
+                });
+                sheetName.focus();
+                (_e = this.$.submit) === null || _e === void 0 ? void 0 : _e.removeAttribute("disabled");
+                (_f = this.$.submit) === null || _f === void 0 ? void 0 : _f.removeAttribute("loading");
+                return;
+            }
             try {
-                const workBook = (0, xlsx_1.readFile)(url, { type: "binary" });
+                const workBook = (0, xlsx_1.readFile)(url, {
+                    type: "binary",
+                });
                 let result = {};
                 if (data.sheetName) {
-                    const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[data.sheetName], {
-                        raw: true,
-                        rawNumbers: true,
-                        defval: !!data.blankCell ? null : undefined,
-                        blankrows: !!data.blankRow,
-                    });
+                    const row = getRow(workBook.Sheets[data.sheetName]);
                     if (row.length > 0)
                         result = row;
                 }
                 else {
                     workBook.SheetNames.forEach((name) => {
-                        const row = xlsx_1.utils.sheet_to_json(workBook.Sheets[name], {
-                            raw: true,
-                            rawNumbers: true,
-                            defval: !!data.blankCell ? null : undefined,
-                            blankrows: !!data.blankRow,
-                        });
+                        if (excludeSheet.includes(name))
+                            return;
+                        const row = getRow(workBook.Sheets[name]);
                         if (row.length > 0)
                             result[name] = row;
                     });
                 }
                 const output = data.outputFile.replace("project://", "db://");
                 await Editor.Message.request("asset-db", "create-asset", output + `/${data.fileName}.json`, JSON.stringify(result));
-                (_e = this.$.submit) === null || _e === void 0 ? void 0 : _e.removeAttribute("disabled");
-                (_f = this.$.submit) === null || _f === void 0 ? void 0 : _f.removeAttribute("loading");
+                (_g = this.$.submit) === null || _g === void 0 ? void 0 : _g.removeAttribute("disabled");
+                (_h = this.$.submit) === null || _h === void 0 ? void 0 : _h.removeAttribute("loading");
                 Editor.Profile.setConfig(package_json_1.default.name, "excelToJsonData", data);
             }
             catch (e) {
                 await Editor.Dialog.error("Error", { detail: e.message });
-                (_g = this.$.submit) === null || _g === void 0 ? void 0 : _g.removeAttribute("disabled");
-                (_h = this.$.submit) === null || _h === void 0 ? void 0 : _h.removeAttribute("loading");
+                (_j = this.$.submit) === null || _j === void 0 ? void 0 : _j.removeAttribute("disabled");
+                (_k = this.$.submit) === null || _k === void 0 ? void 0 : _k.removeAttribute("loading");
             }
         },
     },

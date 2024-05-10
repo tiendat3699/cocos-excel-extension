@@ -1,7 +1,7 @@
 import packageJSON from "../../../package.json";
 import { readFileSync } from "fs-extra";
 import { join } from "path";
-import { readFile, utils } from "xlsx";
+import { readFile, utils, WorkSheet } from "xlsx";
 
 /**
  * @zh 如果希望兼容 3.3 之前的版本可以使用下方的代码
@@ -27,8 +27,11 @@ module.exports = Editor.Panel.define({
         out: "#out",
         sheetName: "#sheetName",
         submit: "#submit",
+        range: "#range",
+        exclude: "#exclude",
         blankRow: "#blankRow",
         blankCell: "#blankCell",
+        useHeader: "#useHeader",
     },
     methods: {
         async loadFormData() {
@@ -41,15 +44,21 @@ module.exports = Editor.Panel.define({
                 const fileName = this.$.fileName as HTMLInputElement;
                 const outputFile = this.$.out as HTMLInputElement;
                 const sheetName = this.$.sheetName as HTMLInputElement;
+                const exclude = this.$.exclude as HTMLInputElement;
+                const range = this.$.range as HTMLInputElement;
                 const blankRow = this.$.blankRow as HTMLInputElement;
                 const blankCell = this.$.blankCell as HTMLInputElement;
+                const useHeader = this.$.useHeader as HTMLInputElement;
 
                 inputFile.value = data.inputFile;
                 fileName.value = data.fileName;
                 outputFile.value = data.outputFile;
                 sheetName.value = data.sheetName;
+                exclude.value = data.exclude;
+                range.value = data.range;
                 blankRow.value = data.blankRow;
                 blankCell.value = data.blankCell;
+                useHeader.value = data.useHeader;
             } else {
                 setTimeout(() => {
                     //@ts-ignore
@@ -62,8 +71,12 @@ module.exports = Editor.Panel.define({
             const fileName = this.$.fileName as HTMLInputElement;
             const outputFile = this.$.out as HTMLInputElement;
             const sheetName = this.$.sheetName as HTMLInputElement;
+            const exclude = this.$.exclude as HTMLInputElement;
+            const range = this.$.range as HTMLInputElement;
             const blankRow = this.$.blankRow as HTMLInputElement;
             const blankCell = this.$.blankCell as HTMLInputElement;
+            const useHeader = this.$.useHeader as HTMLInputElement;
+
             const data = {
                 inputFile: url,
                 fileName: fileName.value,
@@ -71,6 +84,22 @@ module.exports = Editor.Panel.define({
                 sheetName: sheetName.value,
                 blankRow: blankRow.value,
                 blankCell: blankCell.value,
+                exclude: exclude.value,
+                range: range.value,
+                useHeader: useHeader.value,
+            };
+
+            const excludeSheet = data.exclude.split(/\s*,\s*/);
+
+            const getRow = (sheet: WorkSheet) => {
+                return utils.sheet_to_json(sheet, {
+                    raw: true,
+                    rawNumbers: true,
+                    defval: !!data.blankCell ? null : undefined,
+                    blankrows: !!data.blankRow,
+                    range: !!data.range ? data.range : undefined,
+                    header: !!data.useHeader ? undefined : 1,
+                });
             };
 
             if (outputFile.getAttribute("invalid")) {
@@ -93,28 +122,31 @@ module.exports = Editor.Panel.define({
                 return;
             }
 
+            if (
+                excludeSheet.length > 1 &&
+                excludeSheet.includes(data.sheetName)
+            ) {
+                await Editor.Dialog.warn("Warning", {
+                    detail: `Sheet ${sheetName} in exclude sheet`,
+                });
+                sheetName.focus();
+                this.$.submit?.removeAttribute("disabled");
+                this.$.submit?.removeAttribute("loading");
+                return;
+            }
+
             try {
-                const workBook = readFile(url, { type: "binary" });
+                const workBook = readFile(url, {
+                    type: "binary",
+                });
                 let result: any = {};
                 if (data.sheetName) {
-                    const row = utils.sheet_to_json(
-                        workBook.Sheets[data.sheetName],
-                        {
-                            raw: true,
-                            rawNumbers: true,
-                            defval: !!data.blankCell ? null : undefined,
-                            blankrows: !!data.blankRow,
-                        }
-                    );
+                    const row = getRow(workBook.Sheets[data.sheetName]);
                     if (row.length > 0) result = row;
                 } else {
                     workBook.SheetNames.forEach((name) => {
-                        const row = utils.sheet_to_json(workBook.Sheets[name], {
-                            raw: true,
-                            rawNumbers: true,
-                            defval: !!data.blankCell ? null : undefined,
-                            blankrows: !!data.blankRow,
-                        });
+                        if (excludeSheet.includes(name)) return;
+                        const row = getRow(workBook.Sheets[name]);
                         if (row.length > 0) result[name] = row;
                     });
                 }
